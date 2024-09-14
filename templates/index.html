@@ -5,7 +5,8 @@
 
 <div class="row h-25">
     <h1 class="col-xl-6 d-flex justify-content-around align-items-center ">hello</h1>
-    <p class="col-xl-6 d-flex justify-content-around align-items-center p-5">i'm abel, a software <br/>engineere with a focus on <br/>data and beautiful design</p>
+    <p class="col-xl-6 d-flex justify-content-around align-items-center p-5">i'm abel, a software <br />engineere with a
+        focus on <br />data</p>
 </div>
 
 <div class="row h-25">
@@ -16,40 +17,13 @@
 
 
 
-<div class="row h-25">
-    <div class="col-xl-4 d-flex ">
-        <h1>sleep</h1>
-        <br/>
-        
-    </div>
-    <div class="col-xl-8 d-flex align-items-center">
-        <p>data since 27.5.2024 recorded via a fitbit inspire 2</p>
-        ingestion: fitbit API<br/>
-        ETL: python x pandas<br/>
-        storage: csv in github repo<br/>
-        BI: plotly
-    </div>
-</div>
-
 {%load plotly_dash%}
 {%plotly_app name="sleep" ratio=0.65%}
 
-
-<div class="row h-25">
-    <div class="col-xl-4 d-flex align-items-center ">
-        <h1>run</h1>
-        <p></p>
-    </div>
-    <p class="col-xl-8 d-flex align-items-center">
-        ingestion: manual apple health .zip export<br/>
-        ETL: python x pandas x <br/>
-        storage: csv in github repo<br/>
-        BI: plotly
-    </p>
-</div>
+<div class="row h-25"></div>
 
 {%load plotly_dash%}
-{%plotly_app name="sleep" ratio=0.65%}
+{%plotly_app name="run" ratio=0.65%}
 
 
 

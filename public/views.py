@@ -16,16 +16,16 @@ from .helper_gh import abel_gh_auth, abel_put_file, abel_get_file, gather_oauth
 
 
 
-def style_figure(fig):
-    padding = 60
-    fig.update_layout(showlegend=False)
+def style_figure(fig, showlegend=False):
+    padding = 100
+    fig.update_layout(showlegend=showlegend)
     fig['layout']['yaxis']['showgrid'] = False
     #fig['layout']['xaxis']['showgrid'] = False
     #fig['layout']['plot_bgcolor'] = 'rgba(242, 192, 192, 0.2)'
     fig['layout']['margin'] = dict(l=padding,r=padding,t=padding,b=padding)
     fig.update_yaxes(visible=False, showticklabels=False)
     #fig.update_xaxes(visible=False, showticklabels=False)
-    color = '#BFE9DD' #'#83B4F7'
+    color = 'rgb(242, 192, 192)'#'#83B4F7'#BFE9DD' #'#83B4F7'
     fig.update_layout({ 'paper_bgcolor': color, 'plot_bgcolor': color, 'xaxis_title': ""})
     #fig.update_layout({ 'paper_bgcolor': '#83B4F7',})
     return fig
@@ -35,9 +35,7 @@ def index(request):
     context = {}
 
     app_sleep = DjangoDash("sleep", update_title=None, external_stylesheets=[dbc.themes.BOOTSTRAP])
-    app_sleep.layout = html.Div([
-        dcc.Graph(id='sleep'),
-    ])
+    app_sleep.layout = dcc.Graph(id='sleep')
     
     @app_sleep.callback( Output("sleep", "figure"), Input("sleep", "figure") )
     def sleep_graph(n_clicks):
@@ -51,7 +49,36 @@ def index(request):
         fig.add_hline(y=21, line_dash="dot",)
         fig.add_hline(y=22, line_dash="dot",)
         #fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",stepmode="todate"),dict(count=1,label="1y",step="year",stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
+        fig.update_layout(title_text='sleep', title_x=0.5)
         return style_figure(fig)
+    
+        
+    app_run = DjangoDash("run", update_title=None, external_stylesheets=[dbc.themes.BOOTSTRAP])
+    app_run.layout = html.Div([
+        dcc.Graph(id='run_graph'),
+    ])
+    
+    @app_run.callback( Output("run_graph", "figure"), Input("run_graph", "figure") )
+    def run_graph(n_clicks):
+        #g, u = abel_gh_auth()
+        #df = pd.read_csv(abel_get_file(g, u, 'fitbit_sleep.csv'), parse_dates=['start_time', 'end_time']).sort_values('date')
+        df = pd.read_csv('run.csv')
+        
+        df['time'] = pd.to_datetime(df['time'])
+        df['cumulative_distance'] = pd.to_numeric(df['cumulative_distance'])
+
+        ddf = pd.DataFrame(
+            df.groupby([df['time'].dt.date])['cumulative_distance'].max()
+        )
+        ddf['cumulative_distance_over_time'] = ddf['cumulative_distance'].cumsum()
+        fig = px.scatter(ddf, color_discrete_sequence=['#000000']*len(ddf))
+        #fig = px.scatter(df, x=df['date'], y=[
+        #    df['start_time'].dt.hour.astype(float) + df['start_time'].dt.minute.astype(float)/60,
+        #    df['end_time'].dt.hour.astype(float) + df['end_time'].dt.minute.astype(float)/60
+        #], color_discrete_sequence=['#000000']*len(df))
+        #fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",stepmode="todate"),dict(count=1,label="1y",step="year",stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
+        fig.update_layout(title_text='run', title_x=0.5)
+        return style_figure(fig, showlegend=True)
     
         
     return render(request, 'index.html', context=context)

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="row h-25">
+    <div class="col-xl-4 d-flex ">
+        <h1>ingestion</h1>
+    </div>
+
+    <p class="col-xl-4 d-flex justify-content-around align-items-center p-5">
+        
+    </p>
+</div>
+
+{%load plotly_dash%}
+{%plotly_app name="ingestion" ratio=0.65%}
+
+
+{% endblock %}

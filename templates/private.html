@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+<link href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" rel="stylesheet" />
+
+
+
+
+
+<div class="row h-25">
+    <h1 class="col-xl-6 d-flex justify-content-around align-items-center ">private</h1>
+    <p class="col-xl-6 d-flex justify-content-around align-items-center p-5">
+        
+    </p>
+</div>
+
+
+
+
+{%load plotly_dash%}
+{%plotly_app name="expenses" ratio=0.65%}
+
+<div class="row h-25"></div>
+
+{{ df|safe }}
+
+
+{% endblock %}

@@ -2,11 +2,18 @@
 {% load static %}
 {% block content %}
 
+<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+<link href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" rel="stylesheet" />
+
+
+
 
 <div class="row h-25">
     <h1 class="col-xl-6 d-flex justify-content-around align-items-center ">hello</h1>
-    <p class="col-xl-6 d-flex justify-content-around align-items-center p-5">i'm abel, a software <br />engineere with a
-        focus on <br />data</p>
+    <p class="col-xl-6 d-flex justify-content-around align-items-center p-5">
+        i'm abel,
+        <br />i like builing software with a focus on data
+    </p>
 </div>
 
 <div class="row h-25">
@@ -25,6 +32,38 @@
 {%load plotly_dash%}
 {%plotly_app name="run" ratio=0.65%}
 
+<div class="row h-25"></div>
+
+<div id="osm-map"></div>
+
+<div class="row h-25"></div>
 
 
+<script>
+    /*
+    var element = document.getElementById('osm-map');
+    element.style = 'height:300px;';
+
+    var map = L.map(element);
+
+    L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+        attribution: '', attributionControl: false
+    }).addTo(map);
+
+    //var n = [1, 2, 3, 5, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 20, 21, 22];
+    var n = JSON.parse("{{ lons| safe }}")
+    //var m = [0, 1, 2, 3, 4, 5, 6, 7,  8,  9,  10, 11, 12, 13, 14, 15, 16];
+    var m = JSON.parse("{{ lons| safe }}")
+
+    n.forEach((num1, index) => {
+        const num2 = m[index];
+        console.log(num1, num2);
+    });
+
+    var target = L.latLng(47.50737, 19.04611);
+    map.setView(target, 14);
+    L.marker(target).addTo(map);
+
+*/
+</script>
 {% endblock %}

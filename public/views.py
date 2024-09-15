@@ -1,20 +1,39 @@
 import os
-import io
-import base64
+import json
 import fitbit
-import inspect
 import datetime
 import pandas as pd
 import plotly.express as px
-from django.shortcuts import render, redirect
 from dash import dcc, html, dash_table
 import dash_bootstrap_components as dbc
+from pymongo.server_api import ServerApi
 from django_plotly_dash import DjangoDash
+from pymongo.mongo_client import MongoClient
+from django.shortcuts import render, redirect
 from dash.dependencies import Input, Output, State
 from .helper_gh import abel_gh_auth, abel_put_file, abel_get_file, gather_oauth
 
 
+def mongo_db_upload(client, db, df):
+    mydb = client["public"]
+    mycol = mydb[db]
+    outcome = mycol.insert_many(df.to_dict('records'))
+    print(outcome)
+    return 0
 
+def mongo_db_delete(client, db):
+    mydb = client["public"]
+    mycol = mydb[db]
+    outcome = mycol.delete_many({})
+    print(outcome)
+    return 0
+
+def mongo_db_read(client, db):
+    mydb = client["public"]
+    mycol = mydb[db]
+    cursor = mycol.find({})
+    df =  pd.DataFrame(list(cursor))
+    return df
 
 def style_figure(fig, showlegend=False):
     padding = 100
@@ -39,8 +58,9 @@ def index(request):
     
     @app_sleep.callback( Output("sleep", "figure"), Input("sleep", "figure") )
     def sleep_graph(n_clicks):
-        g, u = abel_gh_auth()
-        df = pd.read_csv(abel_get_file(g, u, 'fitbit_sleep.csv'), parse_dates=['start_time', 'end_time']).sort_values('date')
+        uri = os.getenv("MONGO_DB_CLIENT") 
+        client = MongoClient(uri, server_api=ServerApi('1'))
+        df = mongo_db_read(client, 'sleeps')
         fig = px.scatter(df, x=df['date'], y=[
             df['start_time'].dt.hour.astype(float) + df['start_time'].dt.minute.astype(float)/60,
             df['end_time'].dt.hour.astype(float) + df['end_time'].dt.minute.astype(float)/60
@@ -48,7 +68,6 @@ def index(request):
         fig.add_hline(y=7, line_dash="dot",)
         fig.add_hline(y=21, line_dash="dot",)
         fig.add_hline(y=22, line_dash="dot",)
-        #fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",stepmode="todate"),dict(count=1,label="1y",step="year",stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
         fig.update_layout(title_text='sleep', title_x=0.5)
         return style_figure(fig)
     
@@ -60,26 +79,23 @@ def index(request):
     
     @app_run.callback( Output("run_graph", "figure"), Input("run_graph", "figure") )
     def run_graph(n_clicks):
-        #g, u = abel_gh_auth()
-        #df = pd.read_csv(abel_get_file(g, u, 'fitbit_sleep.csv'), parse_dates=['start_time', 'end_time']).sort_values('date')
-        df = pd.read_csv('run.csv')
-        
+        uri = os.getenv("MONGO_DB_CLIENT") 
+        client = MongoClient(uri, server_api=ServerApi('1'))
+        df = mongo_db_read(client, 'runs')
+        print(df.info())
         df['time'] = pd.to_datetime(df['time'])
-        df['cumulative_distance'] = pd.to_numeric(df['cumulative_distance'])
-
+        df['meters_per_day'] = pd.to_numeric(df['cumulative_distance'])
         ddf = pd.DataFrame(
-            df.groupby([df['time'].dt.date])['cumulative_distance'].max()
+            df.groupby([df['time'].dt.date])['meters_per_day'].max()
         )
-        ddf['cumulative_distance_over_time'] = ddf['cumulative_distance'].cumsum()
+        ddf['meters_since_may_20'] = ddf['meters_per_day'].cumsum()
         fig = px.scatter(ddf, color_discrete_sequence=['#000000']*len(ddf))
-        #fig = px.scatter(df, x=df['date'], y=[
-        #    df['start_time'].dt.hour.astype(float) + df['start_time'].dt.minute.astype(float)/60,
-        #    df['end_time'].dt.hour.astype(float) + df['end_time'].dt.minute.astype(float)/60
-        #], color_discrete_sequence=['#000000']*len(df))
-        #fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",stepmode="todate"),dict(count=1,label="1y",step="year",stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
         fig.update_layout(title_text='run', title_x=0.5)
+        
+        context['lons'] = mylist = json.dumps(list(df['longitude']))
         return style_figure(fig, showlegend=True)
-    
+
+        
         
     return render(request, 'index.html', context=context)
 

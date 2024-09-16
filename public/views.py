@@ -69,6 +69,36 @@ def index(request):
         fig.add_hline(y=21, line_dash="dot",)
         fig.add_hline(y=22, line_dash="dot",)
         fig.update_layout(title_text='sleep', title_x=0.5)
+        
+        fig.update_layout(
+                xaxis=dict(
+                    rangeselector=dict(
+                        buttons=list([
+                            dict(count=1,
+                                label="1m",
+                                step="month",
+                                stepmode="backward"),
+                            dict(count=6,
+                                label="6m",
+                                step="month",
+                                stepmode="backward"),
+                            dict(count=1,
+                                label="YTD",
+                                step="year",
+                                stepmode="todate"),
+                            dict(count=1,
+                                label="1y",
+                                step="year",
+                                stepmode="backward"),
+                            dict(step="all")
+                        ])
+                    ),
+                    rangeslider=dict(
+                        visible=True
+                    ),
+                    type="date"
+                )
+            )
         return style_figure(fig)
     
         
@@ -91,6 +121,35 @@ def index(request):
         ddf['meters_since_may_20'] = ddf['meters_per_day'].cumsum()
         fig = px.scatter(ddf, color_discrete_sequence=['#000000']*len(ddf))
         fig.update_layout(title_text='run', title_x=0.5)
+        fig.update_layout(
+                xaxis=dict(
+                    rangeselector=dict(
+                        buttons=list([
+                            dict(count=1,
+                                label="1m",
+                                step="month",
+                                stepmode="backward"),
+                            dict(count=6,
+                                label="6m",
+                                step="month",
+                                stepmode="backward"),
+                            dict(count=1,
+                                label="YTD",
+                                step="year",
+                                stepmode="todate"),
+                            dict(count=1,
+                                label="1y",
+                                step="year",
+                                stepmode="backward"),
+                            dict(step="all")
+                        ])
+                    ),
+                    rangeslider=dict(
+                        visible=True
+                    ),
+                    type="date"
+                )
+            )
         
         context['lons'] = mylist = json.dumps(list(df['longitude']))
         return style_figure(fig, showlegend=True)

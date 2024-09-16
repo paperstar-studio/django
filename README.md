@@ -13,6 +13,7 @@ conda env config vars list
 
 # to implement
 
+Airflow
 LangChain
 FastAPI
 

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+{% load plotly_dash %}
+
+
+<div class="h-auto text-center">
+    <h1 class="col">home</h1>
+</div>
+
+
+
+{% plotly_app name="input_app" ratio=1 %}
+
+
+  <div class="mt-5 h-auto text-center">
+    <div class="col-sm-12">
+      <br/>doing default calcualtions such as % of day first
+      <br/>change in the value over time + derivative + another derivative
+    </div>
+  </div>
+
+
+  <div class="row h-auto">
+    gantt chart with slider
+  </div>
+
+
+  <div class="row h-auto">
+    {{ df|safe  }}
+  </div>
+
+
+
+
+
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+
+<div class="row h-auto text-center">
+    <h1 class="col">52 weeks of data</h1>
+</div>
+
+
+
+
+  <div class="row h-auto">
+    <div class="col-sm-12">
+      each week a new datapoint collected
+    </div>
+  </div>
+
+
+  <div class="row h-auto">
+    <div class="col-sm-12">
+      {{ df|safe }}
+    </div>
+  </div>
+</div>
+
+
+
+{% endblock %}

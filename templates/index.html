@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+<link href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" rel="stylesheet" />
+
+
+
+<div class="h-auto text-center">
+
+    <h1 class="">hello</h1>
+
+    <br/>
+
+    <p class="">i'm abel,<br/><br/>i like builing software with a focus on data</p>
+
+    <p class="">write me an email here if you want: <a href="mailto:hello@paperstar.studio">hello@paperstar.studio</a></p>
+
+    <br/>
+
+    <a type="button" class="btn btn-dark text-light btn-sm btn-round" href="{% url 'public:home' %}" >to app</a>
+
+
+</div>
+
+<script>
+   const ws = new WebSocket('ws://localhost:8000/ws/presence/');
+
+   ws.onmessage = (event) => {
+
+     let data = JSON.parse(event.data)
+     console.log(data)
+     /*
+     presenceEl.innerHTML = data.online;
+
+     const li1 = document.createElement('li');
+     li1.innerHTML = data.msg;
+     messagesEl.appendChild(li1);
+     data.users.forEach(user => {
+       const li2 = document.createElement("li");
+       li2.classList.add("on-us")
+       li2.innerHTML = user;
+       onlineUsers.appendChild(li2);
+     });
+     */
+   };
+ </script>
+
+
+{% endblock %}

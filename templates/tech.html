@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+
+<p class="text-center p-5">
+    technologies to write about
+</p>
+
+<div class="row h-25 d-flex justify-content-center">
+  {% for tech in technologies %}
+    <div class="col-sm-1 p-2"><img src="{% static tech %}" /></div>
+  {% endfor %}
+</div>
+
+
+<!--<div class="col-sm-1"><img src="{% static 'angular.svg' %}" /></div>-->
+
+
+{% endblock %}

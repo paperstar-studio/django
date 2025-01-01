@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+{% load plotly_dash %}
+
+<div class="row h-auto text-center">
+    <h1 class="col">hours in 2025</h1>
+</div>
+
+
+{% plotly_app name="input_app" ratio=1 %}
+
+
+<div class="row h-auto">
+  <div class="col-sm-12">
+
+  <div class="col-sm-12"></div>
+
+  <div class="col-sm-12 text-center">
+    <pre>{{ summary_df|safe }}</pre>
+  </div>
+
+  <div class="col-sm-12 text-center">
+    {{ summary_fig|safe }}
+  </div>
+</div>
+
+
+
+
+<div class="row">
+  <div class="col-sm-12 text-center">
+    <pre>{{ df|safe }}</pre>
+  </div>
+</div>
+
+
+
+{% endblock %}

@@ -22,30 +22,9 @@
     <a type="button" class="btn btn-dark text-light btn-sm btn-round" href="{% url 'public:home' %}" >to app</a>
 
 
+    <div>{{ fig|safe }}</div>
+
 </div>
-
-<script>
-   const ws = new WebSocket('ws://localhost:8000/ws/presence/');
-
-   ws.onmessage = (event) => {
-
-     let data = JSON.parse(event.data)
-     console.log(data)
-     /*
-     presenceEl.innerHTML = data.online;
-
-     const li1 = document.createElement('li');
-     li1.innerHTML = data.msg;
-     messagesEl.appendChild(li1);
-     data.users.forEach(user => {
-       const li2 = document.createElement("li");
-       li2.classList.add("on-us")
-       li2.innerHTML = user;
-       onlineUsers.appendChild(li2);
-     });
-     */
-   };
- </script>
 
 
 {% endblock %}

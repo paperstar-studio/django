@@ -21,6 +21,29 @@ from django.contrib.auth.decorators import login_required
 
 def index(request):
     context = {}
+
+    engine = create_engine(os.environ['POSTGRES_URI'])
+    sleep = pd.read_sql(f"""SELECT * FROM fitbit_sleep where date >= '2024-12-25' """, engine)
+    m_sleep = sleep[['date','start_time','end_time']]
+    m_sleep['date'] = m_sleep['date'].dt.date
+    m_sleep['start_time'] = datetime.datetime(2024,1,1,0,0)
+    m_sleep['end_time'] = m_sleep['end_time'].apply(lambda dt: dt.replace(year=2024, month=1, day=1))
+    m_sleep['type'] = 'sleep'
+
+    em_sleep = sleep[['date','start_time','end_time']]
+    em_sleep['date'] = em_sleep['start_time'].dt.date
+    em_sleep['start_time'] = em_sleep['start_time'].apply(lambda dt: dt.replace(year=2024, month=1, day=1))
+    em_sleep['end_time'] = datetime.datetime(2024,1,2,0,0)
+    em_sleep['type'] = 'sleep'
+
+    abel_sleep = pd.concat([m_sleep, em_sleep])
+    abel_sleep.sort_values('date', inplace=True, ascending=False)
+    color_discrete_sequence = ['#ec7c34']*len(abel_sleep.index)
+    fig = px.timeline(abel_sleep, x_start='start_time', x_end='end_time', y='date', height=1000,color = 'category',
+           color_discrete_sequence=color_discrete_sequence,)
+    # rgb(33,37,41)
+    context['fig'] = fig.to_html()
+
     return render(request, 'index.html', context=context)
 
 

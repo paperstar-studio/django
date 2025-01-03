@@ -46,7 +46,6 @@ def index(request):
     pw_work['end_time'] = pw_work['to'].apply(lambda dt: dt.replace(year=2025, month=1, day=1))
     pw_work['type'] = 'work'
     pw_work['date'] = pd.to_datetime(pw_work['Date'], format='%b %d, %Y')
-    pw_work = pw_work[pw_work['date']>datetime.datetime(2024,12,23)]
     pw_work.dropna(subset='start_time', how='any', inplace=True)
     print(pw_work.info())
     pw_work = pw_work[['date','start_time','end_time','type']]
@@ -55,16 +54,33 @@ def index(request):
 
     abel_sleep = pd.concat([m_sleep, em_sleep, pw_work])
     abel_sleep['date'] = pd.to_datetime(abel_sleep['date'])
+
+    abel_sleep = abel_sleep[abel_sleep['date']>datetime.datetime(2024,12,24)]
+    #abel_sleep = pd.concat([abel_sleep, pd.DataFrame([{'date':datetime.datetime(2024,12,24)}])], ignore_index=True)
     abel_sleep.sort_values('date', inplace=True, ascending=False)
     print(abel_sleep)
 
-    color_discrete_sequence = ['#212529']*len(abel_sleep.index)
-    abel_sleep['color'] = [str(i) for i in abel_sleep.index]
+    #color_discrete_sequence = ['#212529']*len(abel_sleep.index)
+    #abel_sleep['color'] = [str(i) for i in abel_sleep.index]
     fig = px.timeline(
         abel_sleep, x_start='start_time', x_end='end_time',
         y='date', height=1000, color='type',
-        color_discrete_sequence=color_discrete_sequence,
+        color_discrete_sequence=['lightpink',"#212529", ],
+
     )
+
+    fig.update_layout(
+        xaxis_title="", yaxis_title="",
+        bargap=0.01,
+        yaxis_tickformat="%a %d %b",
+        xaxis_tickformat="%H",
+        plot_bgcolor='gainsboro',
+        #padding=dict(l=30,r=30,b=30,t=30)
+    )
+    fig.update_yaxes(nticks=int(len(abel_sleep.index)/2))
+    fig.update_xaxes(nticks=48)
+
+    #fig.update_traces(width=0.7)
     # rgb(33,37,41)
     context['fig'] = fig.to_html()
 

@@ -26,21 +26,45 @@ def index(request):
     sleep = pd.read_sql(f"""SELECT * FROM fitbit_sleep where date >= '2024-12-25' """, engine)
     m_sleep = sleep[['date','start_time','end_time']]
     m_sleep['date'] = m_sleep['date'].dt.date
-    m_sleep['start_time'] = datetime.datetime(2024,1,1,0,0)
-    m_sleep['end_time'] = m_sleep['end_time'].apply(lambda dt: dt.replace(year=2024, month=1, day=1))
+    m_sleep['start_time'] = datetime.datetime(2025,1,1,0,0)
+    m_sleep['end_time'] = m_sleep['end_time'].apply(lambda dt: dt.replace(year=2025, month=1, day=1))
     m_sleep['type'] = 'sleep'
 
     em_sleep = sleep[['date','start_time','end_time']]
     em_sleep['date'] = em_sleep['start_time'].dt.date
-    em_sleep['start_time'] = em_sleep['start_time'].apply(lambda dt: dt.replace(year=2024, month=1, day=1))
-    em_sleep['end_time'] = datetime.datetime(2024,1,2,0,0)
+    em_sleep['start_time'] = em_sleep['start_time'].apply(lambda dt: dt.replace(year=2025, month=1, day=1))
+    em_sleep['end_time'] = datetime.datetime(2025,1,2,0,0)
     em_sleep['type'] = 'sleep'
 
-    abel_sleep = pd.concat([m_sleep, em_sleep])
+    pw_24_12 = pd.read_excel("Webdesk-Journal-Export--dec.xlsx")
+    pw_25_01 = pd.read_excel("Webdesk-Journal-Export--jan.xlsx")
+    pw_work = pd.concat([pw_24_12, pw_25_01])
+
+    pw_work['from'] = pd.to_datetime(pw_work['from'], format='%H:%M')
+    pw_work['to'] = pd.to_datetime(pw_work['to'], format='%H:%M')
+    pw_work['start_time'] = pw_work['from'].apply(lambda dt: dt.replace(year=2025, month=1, day=1))
+    pw_work['end_time'] = pw_work['to'].apply(lambda dt: dt.replace(year=2025, month=1, day=1))
+    pw_work['type'] = 'work'
+    pw_work['date'] = pd.to_datetime(pw_work['Date'], format='%b %d, %Y')
+    pw_work = pw_work[pw_work['date']>datetime.datetime(2024,12,23)]
+    pw_work.dropna(subset='start_time', how='any', inplace=True)
+    print(pw_work.info())
+    pw_work = pw_work[['date','start_time','end_time','type']]
+    print(pw_work)
+
+
+    abel_sleep = pd.concat([m_sleep, em_sleep, pw_work])
+    abel_sleep['date'] = pd.to_datetime(abel_sleep['date'])
     abel_sleep.sort_values('date', inplace=True, ascending=False)
-    color_discrete_sequence = ['#ec7c34']*len(abel_sleep.index)
-    fig = px.timeline(abel_sleep, x_start='start_time', x_end='end_time', y='date', height=1000,color = 'category',
-           color_discrete_sequence=color_discrete_sequence,)
+    print(abel_sleep)
+
+    color_discrete_sequence = ['#212529']*len(abel_sleep.index)
+    abel_sleep['color'] = [str(i) for i in abel_sleep.index]
+    fig = px.timeline(
+        abel_sleep, x_start='start_time', x_end='end_time',
+        y='date', height=1000, color='type',
+        color_discrete_sequence=color_discrete_sequence,
+    )
     # rgb(33,37,41)
     context['fig'] = fig.to_html()
 

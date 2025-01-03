@@ -33,6 +33,9 @@ MANIFEST
 *.manifest
 *.spec
 
+Webdesk-Journal-Export--dec.xlsx
+Webdesk-Journal-Export--jan.xlsx
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

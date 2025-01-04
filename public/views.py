@@ -17,12 +17,13 @@ from django.shortcuts import render, redirect
 from dash.dependencies import Input, Output, State
 from django.contrib.auth.decorators import login_required
 
-
+# 🌟 star, 🚀
 
 def index(request):
     context = {}
 
-    engine = create_engine(os.environ['POSTGRES_URI'])
+    engine = create_engine(os.environ['POSTGRES_SUPABASE'])
+    print(os.environ['POSTGRES_SUPABASE'])
     sleep = pd.read_sql(f"""SELECT * FROM fitbit_sleep where date >= '2024-12-25' """, engine)
     m_sleep = sleep[['date','start_time','end_time']]
     m_sleep['date'] = m_sleep['date'].dt.date
@@ -39,7 +40,6 @@ def index(request):
     pw_24_12 = pd.read_excel("Webdesk-Journal-Export--dec.xlsx")
     pw_25_01 = pd.read_excel("Webdesk-Journal-Export--jan.xlsx")
     pw_work = pd.concat([pw_24_12, pw_25_01])
-
     pw_work['from'] = pd.to_datetime(pw_work['from'], format='%H:%M')
     pw_work['to'] = pd.to_datetime(pw_work['to'], format='%H:%M')
     pw_work['start_time'] = pw_work['from'].apply(lambda dt: dt.replace(year=2025, month=1, day=1))
@@ -47,31 +47,48 @@ def index(request):
     pw_work['type'] = 'work'
     pw_work['date'] = pd.to_datetime(pw_work['Date'], format='%b %d, %Y')
     pw_work.dropna(subset='start_time', how='any', inplace=True)
-    print(pw_work.info())
     pw_work = pw_work[['date','start_time','end_time','type']]
-    print(pw_work)
 
 
-    abel_sleep = pd.concat([m_sleep, em_sleep, pw_work])
+    runs = pd.read_sql(f""" SELECT * FROM running where "time" >= '2024-12-26' """, con=engine)
+    runs_start = pd.DataFrame(runs.groupby('run_id')['time'].min())
+    runs_end = pd.DataFrame(runs.groupby('run_id')['time'].max())
+    runs = pd.merge(
+        runs_start, runs_end,
+        left_on='run_id', right_on='run_id',
+        suffixes=['_start','_end']
+    )
+    runs['date'] = runs['time_start'].dt.date
+    runs['start_time'] = runs['time_start'].apply(lambda dt: dt.replace(year=2025, month=1, day=1))
+    runs['end_time'] = runs['time_end'].apply(lambda dt: dt.replace(year=2025, month=1, day=1))
+    runs['type'] = 'run'
+    runs = runs[['date','start_time','end_time','type']]
+    print(runs)
+    print(runs.info())
+    print()
+
+    #print(pd.DataFrame(runs.groupby('run_id')['time'].max()))
+    #print(pd.DataFrame(runs.groupby('run_id')['time'].min()))
+
+    abel_sleep = pd.concat([m_sleep, em_sleep, pw_work, runs])
     abel_sleep['date'] = pd.to_datetime(abel_sleep['date'])
 
     abel_sleep = abel_sleep[abel_sleep['date']>datetime.datetime(2024,12,24)]
     #abel_sleep = pd.concat([abel_sleep, pd.DataFrame([{'date':datetime.datetime(2024,12,24)}])], ignore_index=True)
     abel_sleep.sort_values('date', inplace=True, ascending=False)
+    abel_sleep['start_time'] = pd.to_datetime(abel_sleep['start_time'], utc=True)
+    abel_sleep['end_time'] = pd.to_datetime(abel_sleep['end_time'], utc=True)
     print(abel_sleep)
-
-    #color_discrete_sequence = ['#212529']*len(abel_sleep.index)
-    #abel_sleep['color'] = [str(i) for i in abel_sleep.index]
     fig = px.timeline(
         abel_sleep, x_start='start_time', x_end='end_time',
         y='date', height=1000, color='type',
-        color_discrete_sequence=['lightpink',"#212529", ],
+        #color_discrete_sequence=['lightpink','lightgreen',"#212529", ],
 
     )
 
     fig.update_layout(
         xaxis_title="", yaxis_title="",
-        bargap=0.01,
+        bargap=0.05,
         yaxis_tickformat="%a %d %b",
         xaxis_tickformat="%H",
         plot_bgcolor='gainsboro',

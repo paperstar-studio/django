@@ -22,8 +22,8 @@ from django.contrib.auth.decorators import login_required
 def index(request):
     context = {}
 
-    engine = create_engine(os.environ['POSTGRES_SUPABASE'])
-    print(os.environ['POSTGRES_SUPABASE'])
+    engine = create_engine(os.environ['POSTGRES_URI'])
+    print(os.environ['POSTGRES_URI'])
     sleep = pd.read_sql(f"""SELECT * FROM fitbit_sleep where date >= '2024-12-25' """, engine)
     m_sleep = sleep[['date','start_time','end_time']]
     m_sleep['date'] = m_sleep['date'].dt.date
@@ -70,7 +70,8 @@ def index(request):
     #print(pd.DataFrame(runs.groupby('run_id')['time'].max()))
     #print(pd.DataFrame(runs.groupby('run_id')['time'].min()))
 
-    abel_sleep = pd.concat([m_sleep, em_sleep, pw_work, runs])
+    abel_sleep = pd.concat([m_sleep, em_sleep, pw_work, runs ])#em_sleep, runs])
+    #abel_sleep = runs
     abel_sleep['date'] = pd.to_datetime(abel_sleep['date'])
 
     abel_sleep = abel_sleep[abel_sleep['date']>datetime.datetime(2024,12,24)]
@@ -78,24 +79,51 @@ def index(request):
     abel_sleep.sort_values('date', inplace=True, ascending=False)
     abel_sleep['start_time'] = pd.to_datetime(abel_sleep['start_time'], utc=True)
     abel_sleep['end_time'] = pd.to_datetime(abel_sleep['end_time'], utc=True)
+    abel_sleep['label'] = abel_sleep['date'].dt.strftime("%a %d %b")
+    abel_sleep = abel_sleep.reset_index()
+    abel_sleep.drop_duplicates(subset=['date','start_time'], inplace=True)
+
+    def mask(row):
+       if row["start_time"].hour != 0:
+          row["label"] = ""
+       return row
+
+    abel_sleep = abel_sleep.apply(mask, axis=1)
+    #abel_sleep['label'] = np.where(abel_sleep['type']=='sleep', abel_sleep['start_time'].dt.strftime("%a %d %b"), None)
+
     print(abel_sleep)
     fig = px.timeline(
         abel_sleep, x_start='start_time', x_end='end_time',
-        y='date', height=1000, color='type',
+        y='date', text='label',
+        hover_data=["type"], #color='type',
+        height=len(abel_sleep.index)*30,
         #color_discrete_sequence=['lightpink','lightgreen',"#212529", ],
-
     )
+    colormap = {s:c for s,c in zip(abel_sleep["type"].unique(), px.colors.qualitative.Plotly)}
+    # use status in customdata to map color
+    fig.update_traces(marker_color=[colormap[s[0]] for s in fig.data[0].customdata])
 
     fig.update_layout(
-        xaxis_title="", yaxis_title="",
-        bargap=0.05,
-        yaxis_tickformat="%a %d %b",
-        xaxis_tickformat="%H",
-        plot_bgcolor='gainsboro',
+        xaxis_range=[datetime.datetime(2025,1,1,0,0,0), datetime.datetime(2025,1,2,0,0,0)],
+        #xaxis_title="", yaxis_title="",
+        bargap=0.1,
+        #yaxis_tickformat="%a %d %b",
+        #xaxis_tickformat="%H",
+        #showlegend=False
+        #plot_bgcolor='gainsboro',
         #padding=dict(l=30,r=30,b=30,t=30)
     )
-    fig.update_yaxes(nticks=int(len(abel_sleep.index)/2))
-    fig.update_xaxes(nticks=48)
+    fig.update_yaxes(visible=False, nticks=int(len(abel_sleep.index)/2))
+    fig.update_xaxes(nticks=24)
+
+    fig.update_traces(
+    #textposition='top center',
+    textposition="auto",
+            # anchor could be "start" or "end"
+            insidetextanchor="start",
+            #insidetextfont=dict(family='Helvetia', size=16, color='white'),
+    #textposition='inside'
+    )
 
     #fig.update_traces(width=0.7)
     # rgb(33,37,41)

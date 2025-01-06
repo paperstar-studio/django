@@ -14,4 +14,8 @@ urlpatterns = [
 
     path("ws/presence", consumers.PresenceConsumer.as_asgi()),
 
+
+
+    path("fetch_fitbit/", views.fetch_fitbit, name="fetch_fitbit"),
+
 ]

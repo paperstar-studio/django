@@ -24,6 +24,7 @@ def index(request):
     context = {}
 
     engine = create_engine(os.environ['POSTGRES_URI'])
+    print(os.environ['POSTGRES_URI'])
 
     sleep = pd.read_sql(
         f"""SELECT * FROM fitbit_sleeping where "dateOfSleep" >= '2024-12-25' AND "isMainSleep" = True """,
@@ -233,7 +234,6 @@ def week_52(request):
     s = df.style.apply(rowStyle, axis=1)
     context['df'] = s.to_html()
     return render(request, 'data_52.html', context=context)
-
 
 
 def tech (request):

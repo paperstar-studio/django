@@ -10,8 +10,6 @@ urlpatterns = [
     path("home/", views.home, name="home"),
     path("week_52/", views.week_52, name="week_52"),
 
-    path("sleep/", views.sleep, name="sleep"),
-
     path("ws/presence", consumers.PresenceConsumer.as_asgi()),
 
 

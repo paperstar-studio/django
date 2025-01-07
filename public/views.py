@@ -23,7 +23,7 @@ from django.contrib.auth.decorators import login_required
 def index(request):
     context = {}
 
-    engine = create_engine(os.environ['POSTGRES_URI'])
+    engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
     print(os.environ['POSTGRES_URI'])
 
     sleep = pd.read_sql(
@@ -190,7 +190,7 @@ def home(request):
         Input(component_id='submit-val', component_property='n_clicks'), State(component_id='my-input', component_property='value'), prevent_initial_call=False
     )
     def update_output_div(n_clicks, input_value):
-        engine = create_engine(os.environ.get('POSTGRES_SUPABASE'),)
+        engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
 
         if n_clicks:
             ip_address_of_client = get_client_ip(request)
@@ -245,29 +245,6 @@ def tech (request):
             expand_tech.append(file)
     context['technologies'] = expand_tech
     return render(request, 'tech.html', context=context)
-
-
-
-@login_required
-def sleep(request): # api request limit is 150 / hour
-    context = {}
-
-    engine = create_engine(os.environ.get('POSTGRES_RAILWAY'),)
-
-    df = pd.read_sql(f"SELECT * FROM fitbit_sleep", engine)
-    df = df.round(2)
-    df = df[df['start_time'].dt.hour>18] # removes naps
-
-    fig = px.scatter(df, x=df['date'], y=[
-        df['start_time'].dt.hour.astype(float) + df['start_time'].dt.minute.astype(float)/60,
-        df['end_time'].dt.hour.astype(float) + df['end_time'].dt.minute.astype(float)/60
-    ], color_discrete_sequence=['#000000']*len(df))
-    fig.update_layout(xaxis=dict(rangeselector=dict(),rangeslider=dict(visible=True),type="date"))
-    context['fig'] = fig.to_html()
-    context['df'] = tabulate(df, df.columns, tablefmt="psql")
-    return render(request, "sleep.html", context=context)
-
-
 
 
 
@@ -334,7 +311,7 @@ def fetch_fitbit(request):
 
     fitbit_client = fitbit.Fitbit( "23PHFZ", "public", tokens['access_token'], tokens['refresh_token'] )
 
-    engine = create_engine(os.environ.get('POSTGRES_URI',''))
+    engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
 
     for date in date_list[0:13]:
         sleep_data = fitbit_client.sleep(date)

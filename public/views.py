@@ -20,12 +20,11 @@ from django.contrib.auth.decorators import login_required
 
 # 🌟 star, 🚀
 
+
 def index(request):
     context = {}
-
     engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
     print(os.environ['POSTGRES_URI'])
-
     sleep = pd.read_sql(
         f"""SELECT * FROM fitbit_sleeping where "dateOfSleep" >= '2024-12-25' AND "isMainSleep" = True """,
         con=engine,
@@ -73,7 +72,7 @@ def index(request):
 
     abel_sleep = pd.concat([m_sleep, em_sleep, pw_work, runs ])
     abel_sleep['date'] = pd.to_datetime(abel_sleep['date'])
-    abel_sleep = abel_sleep[abel_sleep['date']>datetime.datetime(2024,12,24)]
+    abel_sleep = abel_sleep[abel_sleep['date']>datetime.datetime(2024,12,25)]
     abel_sleep.sort_values('date', inplace=True, ascending=False)
     abel_sleep['start_time'] = pd.to_datetime(abel_sleep['start_time'], utc=True)
     abel_sleep['end_time'] = pd.to_datetime(abel_sleep['end_time'], utc=True)
@@ -92,7 +91,7 @@ def index(request):
         abel_sleep, x_start='start_time', x_end='end_time',
         y='date', text='label',
         hover_data=["type"],
-        height=len(abel_sleep.index)*30,
+        height=len(abel_sleep.index)*20,
     )
     colormap = {s:c for s,c in zip(abel_sleep["type"].unique(), px.colors.qualitative.Pastel2)}
     fig.update_traces(
@@ -108,7 +107,7 @@ def index(request):
         plot_bgcolor='rgb(246,244,242)',
         title_font_family="Arial",
         title_font_color="black",
-        #padding=dict(l=30,r=30,b=30,t=30)
+        margin=dict(l=0,r=0,b=60,t=30)
     )
     fig.layout.font.family = 'Arial'
     fig.layout.font.size = 16
@@ -313,13 +312,16 @@ def fetch_fitbit(request):
 
     engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
 
-    for date in date_list[0:13]:
+    for date in date_list[0:17]:
         sleep_data = fitbit_client.sleep(date)
         if len(sleep_data['sleep']):
             durration_df = pd.DataFrame(sleep_data['sleep'])
-            with engine.connect() as conn:
-                conn.execute(text(f"DELETE FROM fitbit_sleep WHERE date='{date}' "))
-                conn.commit()
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text(f"DELETE FROM fitbit_sleep WHERE date='{date}' "))
+                    conn.commit()
+            except Exception as e:
+                print(e)
             durration_df.to_sql(
                 f"fitbit_sleeping", con=engine, index=False, if_exists='append',
                 dtype={"minuteData": sqlalchemy.types.JSON},

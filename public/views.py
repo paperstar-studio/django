@@ -24,7 +24,6 @@ from django.contrib.auth.decorators import login_required
 def index(request):
     context = {}
     engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
-    print(os.environ['POSTGRES_URI'])
     sleep = pd.read_sql(
         f"""SELECT * FROM fitbit_sleeping where "dateOfSleep" >= '2024-12-25' AND "isMainSleep" = True """,
         con=engine,
@@ -118,6 +117,84 @@ def index(request):
     return render(request, 'index.html', context=context)
 
 
+def abel(request):
+    context = {}
+    expand_tech = []
+    for file in os.listdir('static'):
+        if file not in ['.DS_Store','.gitkeep']:
+            expand_tech.append(file)
+    context['technologies'] = expand_tech
+
+
+    app = DjangoDash(name="input_app",external_stylesheets=[dbc.themes.BOOTSTRAP])
+    app.layout = html.Div([
+        html.H6("self reported stress score (1=no stress, 5=anxious for no reason, 10=feel like breaking down)"),
+        html.Div([
+            dcc.Input(id='my-input', value='0', type='number'),
+            html.Button('Submit', id='submit-val', n_clicks=0),
+        ]),
+        html.Br(),
+        html.Pre(id='my-output'),
+
+    ])
+
+    @app.callback(
+        Output(component_id='my-output', component_property='children'),
+        Input(component_id='submit-val', component_property='n_clicks'), State(component_id='my-input', component_property='value'), prevent_initial_call=False
+    )
+    def update_output_div(n_clicks, input_value):
+        engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
+        if n_clicks:
+            ip_address_of_client = get_client_ip(request)
+            df = pd.DataFrame([
+                {
+                'timestamp':datetime.datetime.now(),
+                'ip_address': ip_address_of_client,
+                'stress_score': input_value,
+                }
+            ])
+            print(df)
+            df.to_sql(f"self_reported_stress_score", con=engine, index=False, if_exists='append')
+        df = pd.read_sql(f"SELECT * FROM self_reported_stress_score ORDER BY timestamp DESC LIMIT 5", con=engine)
+        return tabulate(df.round(2), df.columns, tablefmt="psql")
+
+
+
+    engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
+    df = pd.read_sql(
+        f"""SELECT
+        "awakeCount"
+         "awakeDuration",
+         "awakeningsCount",
+         "dateOfSleep",
+         "duration",
+         ("timeInBed"::float / 60) as "duration_hours",
+         "endTime"::timestamp - "startTime"::timestamp as "duration_timestamp",
+         "efficiency",
+         "endTime",
+         "isMainSleep",
+         "logId",
+         "minuteData",
+         "minutesAfterWakeup",
+         "minutesAsleep",
+         "minutesAwake",
+         "minutesToFallAsleep",
+         "restlessCount",
+         "restlessDuration",
+         "startTime",
+         "timeInBed"
+        FROM fitbit_sleeping where "dateOfSleep" >= '2024-12-26' """,
+        con=engine,
+        dtype={'dateOfSleep':'datetime64[ns]', 'startTime':'datetime64[ns]', 'endTime':'datetime64[ns]'},
+    )
+    print(df.info())
+
+    context['df'] = df[[
+        'dateOfSleep','duration_hours'
+    ]].round(2).to_html()
+
+    return render(request, 'private/abel.html', context=context)
+
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -210,45 +287,9 @@ def home(request):
     return render(request, 'work.html', context=context)
 
 
-# 52 weeks of data collection
-def week_52(request):
-    context = {}
-    dates = pd.DataFrame(pd.date_range(start='2025', end='2026',freq='W-MON'))
-    topics = pd.DataFrame([
-        'sleep from fitbit', 'expenses from ELBA', 'self reported stress level', 'analytics',
-        'weather from api', 'running from app', 'distance traveled google timeline','analysis',
-        'work from pw.','lines of code github','commute time','steps from fitbit','analytics',
-        'siblings','2','3','analytics',
-        '1','2','3','analytics',
-        '1','2','3','4','analytics',
-        '1','2','3','analytics',
-    ])
-
-    df = pd.merge(dates, topics, left_index=True, right_index=True, how='outer')
-    def rowStyle(row):
-        if row['0_x'].month % 2 == 1:
-            return ['background-color: lightgrey'] * len(row)
-        return [''] * len(row)
-
-    s = df.style.apply(rowStyle, axis=1)
-    context['df'] = s.to_html()
-    return render(request, 'data_52.html', context=context)
 
 
-def tech (request):
-    context = {}
-    expand_tech = []
-    for file in os.listdir('static'):
-        print(file)
-        if file not in ['.DS_Store','.gitkeep']:
-            expand_tech.append(file)
-    context['technologies'] = expand_tech
-    return render(request, 'tech.html', context=context)
-
-
-
-
-# fetches last 13 days of sleep
+# PUBLIC fetches last 13 days of sleep
 def fetch_fitbit(request):
     import cherrypy
     import sys
@@ -309,10 +350,9 @@ def fetch_fitbit(request):
     date_list.reverse()
 
     fitbit_client = fitbit.Fitbit( "23PHFZ", "public", tokens['access_token'], tokens['refresh_token'] )
-
     engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
 
-    for date in date_list[0:17]:
+    for date in date_list[0:10]:
         sleep_data = fitbit_client.sleep(date)
         if len(sleep_data['sleep']):
             durration_df = pd.DataFrame(sleep_data['sleep'])

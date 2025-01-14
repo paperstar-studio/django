@@ -1,10 +1,12 @@
 import os
 import json
+import scipy
 import fitbit
 import datetime
 import sqlalchemy
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import plotly.express as px
 from tabulate import tabulate
 import plotly.graph_objects as go
@@ -125,41 +127,6 @@ def abel(request):
             expand_tech.append(file)
     context['technologies'] = expand_tech
 
-
-    app = DjangoDash(name="input_app",external_stylesheets=[dbc.themes.BOOTSTRAP])
-    app.layout = html.Div([
-        html.H6("self reported stress score (1=no stress, 5=anxious for no reason, 10=feel like breaking down)"),
-        html.Div([
-            dcc.Input(id='my-input', value='0', type='number'),
-            html.Button('Submit', id='submit-val', n_clicks=0),
-        ]),
-        html.Br(),
-        html.Pre(id='my-output'),
-
-    ])
-
-    @app.callback(
-        Output(component_id='my-output', component_property='children'),
-        Input(component_id='submit-val', component_property='n_clicks'), State(component_id='my-input', component_property='value'), prevent_initial_call=False
-    )
-    def update_output_div(n_clicks, input_value):
-        engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
-        if n_clicks:
-            ip_address_of_client = get_client_ip(request)
-            df = pd.DataFrame([
-                {
-                'timestamp':datetime.datetime.now(),
-                'ip_address': ip_address_of_client,
-                'stress_score': input_value,
-                }
-            ])
-            print(df)
-            df.to_sql(f"self_reported_stress_score", con=engine, index=False, if_exists='append')
-        df = pd.read_sql(f"SELECT * FROM self_reported_stress_score ORDER BY timestamp DESC LIMIT 5", con=engine)
-        return tabulate(df.round(2), df.columns, tablefmt="psql")
-
-
-
     engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
     df = pd.read_sql(
         f"""SELECT
@@ -192,6 +159,34 @@ def abel(request):
     context['df'] = df[[
         'dateOfSleep','duration_hours'
     ]].round(2).to_html()
+
+
+    app = DjangoDash(name="correlations",external_stylesheets=[dbc.themes.BOOTSTRAP])
+    app.layout = html.Div([
+        dbc.Row([
+            dbc.Col([
+                dcc.Dropdown(['NYC', 'MTL', 'SF'], 'NYC', id='x-input'),
+                dcc.Dropdown(['NYC', 'MTL', 'SF'], 'NYC', id='y-input'),
+            ], width=4),
+            dbc.Col([
+                dcc.Graph(id="scatter-plot"),
+            ], width=8),
+        ])
+    ])
+
+    @app.callback(
+        Output("scatter-plot", "figure"),
+        Input("x-input", "value"),Input("y-input", "value"))
+    def update_bar_chart(x, y):
+        ddf = df[df['isMainSleep']==True]
+        fig = px.scatter(ddf, x="efficiency", y="duration_hours", trendline='ols')
+        return fig
+
+
+
+    #correclation = scipy.stats.linregress( ddf['efficiency'],ddf['duration_hours'],)
+    #print(correclation)
+
 
     return render(request, 'private/abel.html', context=context)
 

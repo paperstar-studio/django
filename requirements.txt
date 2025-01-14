@@ -100,3 +100,5 @@ Willow==1.9.0
 wrapt==1.16.0
 zc.lockfile==3.0.post1
 zope.interface==7.2
+seaborn
+statsmodels

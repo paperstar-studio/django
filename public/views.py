@@ -83,8 +83,8 @@ def index(request):
     abel_sleep['date'] = pd.to_datetime(abel_sleep['date'])
     abel_sleep = abel_sleep[abel_sleep['date']>datetime.datetime(2024,12,25)]
     abel_sleep.sort_values('date', inplace=True, ascending=False)
-    #abel_sleep['start_time'] = pd.to_datetime(abel_sleep['start_time'], utc=True)
-    #abel_sleep['end_time'] = pd.to_datetime(abel_sleep['end_time'], utc=True)
+    abel_sleep['start_time'] = pd.to_datetime(abel_sleep['start_time'], utc=True)
+    abel_sleep['end_time'] = pd.to_datetime(abel_sleep['end_time'], utc=True)
     abel_sleep['label'] = abel_sleep['date'].dt.strftime("%a %d %b")
     abel_sleep = abel_sleep.reset_index()
     abel_sleep.drop_duplicates(subset=['date','start_time'], inplace=True)

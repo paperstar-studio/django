@@ -20,6 +20,14 @@ from django.shortcuts import render, redirect
 from dash.dependencies import Input, Output, State
 from django.contrib.auth.decorators import login_required
 
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 # 🌟 star, 🚀
 
 
@@ -75,8 +83,8 @@ def index(request):
     abel_sleep['date'] = pd.to_datetime(abel_sleep['date'])
     abel_sleep = abel_sleep[abel_sleep['date']>datetime.datetime(2024,12,25)]
     abel_sleep.sort_values('date', inplace=True, ascending=False)
-    abel_sleep['start_time'] = pd.to_datetime(abel_sleep['start_time'], utc=True)
-    abel_sleep['end_time'] = pd.to_datetime(abel_sleep['end_time'], utc=True)
+    #abel_sleep['start_time'] = pd.to_datetime(abel_sleep['start_time'], utc=True)
+    #abel_sleep['end_time'] = pd.to_datetime(abel_sleep['end_time'], utc=True)
     abel_sleep['label'] = abel_sleep['date'].dt.strftime("%a %d %b")
     abel_sleep = abel_sleep.reset_index()
     abel_sleep.drop_duplicates(subset=['date','start_time'], inplace=True)
@@ -102,12 +110,12 @@ def index(request):
     )
     fig.update_layout(
         title_text='sleep work and run times / day', title_x=0.5,
-        xaxis_range=[datetime.datetime(2025,1,1,0,0,0), datetime.datetime(2025,1,2,0,0,0)],
-        bargap=0.05,
-        xaxis_tickformat="%H",
-        plot_bgcolor='rgb(246,244,242)',
         title_font_family="Arial",
         title_font_color="black",
+        xaxis_range=[datetime.datetime(2025,1,1,0,0,0), datetime.datetime(2025,1,2,0,0,0)],
+        xaxis_tickformat="%H",
+        bargap=0.05,
+        plot_bgcolor='rgb(246,244,242)',
         margin=dict(l=0,r=0,b=60,t=30)
     )
     fig.layout.font.family = 'Arial'
@@ -118,7 +126,7 @@ def index(request):
 
     return render(request, 'index.html', context=context)
 
-
+@login_required
 def abel(request):
     context = {}
     expand_tech = []
@@ -157,129 +165,45 @@ def abel(request):
     print(df.info())
 
     context['df'] = df[[
-        'dateOfSleep','duration_hours'
+        'dateOfSleep','duration_hours','startTime',
     ]].round(2).to_html()
 
 
+    # correlations application
     app = DjangoDash(name="correlations",external_stylesheets=[dbc.themes.BOOTSTRAP])
     app.layout = html.Div([
-        dbc.Row([
-            dbc.Col([
-                dcc.Dropdown(['NYC', 'MTL', 'SF'], 'NYC', id='x-input'),
-                dcc.Dropdown(['NYC', 'MTL', 'SF'], 'NYC', id='y-input'),
-            ], width=4),
-            dbc.Col([
-                dcc.Graph(id="scatter-plot"),
-            ], width=8),
-        ])
-    ])
+        dbc.Row([dcc.Dropdown(df.columns, 'duration_hours', id='x'), dcc.Dropdown(df.columns, 'efficiency', id='y'),]),
+        dbc.Row([], id='abel'),
+    ], className=['m-5 text-center'])
 
-    @app.callback(
-        Output("scatter-plot", "figure"),
-        Input("x-input", "value"),Input("y-input", "value"))
+    @app.callback(Output("abel", "children"), Input("x", "value"), Input("y", "value"))
     def update_bar_chart(x, y):
         ddf = df[df['isMainSleep']==True]
-        fig = px.scatter(ddf, x="efficiency", y="duration_hours", trendline='ols')
-        return fig
+        fig = px.scatter(ddf, x=x, y=y, trendline='ols')
+        correclation = scipy.stats.linregress( ddf[x],ddf[y],)
+        return html.Div([ dcc.Graph(figure=fig), html.P(f"{correclation}"), ])
 
 
 
-    #correclation = scipy.stats.linregress( ddf['efficiency'],ddf['duration_hours'],)
-    #print(correclation)
-
-
-    return render(request, 'private/abel.html', context=context)
-
-def get_client_ip(request):
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
-
-
-def home(request):
-
-    context = {}
-
-    df = pd.read_excel('personalwolke_2025.xlsx')
-    df['date'] = pd.to_datetime(df['Date'])
-    df['day'] = df['date'].dt.day_name()
-    df['total_time'] = 24
-    df[['tt_h', 'tt_m']] = df['Daily target time'].str.split(':', n=1, expand=True)
-    df['work_target'] = pd.to_numeric(df['tt_h']) + pd.to_numeric(df['tt_m'])/60
-    df['sleep_target'] = 8
-    df['commuting_target'] = df['work_target'].apply(lambda x: 2 if x>0 else 0)
-
-    s_row = {}
-    s_row['yearly_total_time'] = df['total_time'].sum()
-    s_row['yearly_work_target'] = df['work_target'].sum()
-    s_row['yearly_sleep_target'] = df['sleep_target'].sum()
-    s_row['yearly_commuting_target'] = df['commuting_target'].sum()
-    s_row['yearly_free_time'] = df['total_time'].sum() - ( df['work_target'].sum() + df['sleep_target'].sum() + df['commuting_target'].sum() )
-
-    summary_df = pd.DataFrame([s_row])
-    summary_df = summary_df.transpose()
-    summary_df = summary_df.rename(columns={0:'yearly_hours'})
-    summary_df['percent'] = summary_df['yearly_hours']/summary_df.iloc[0,0]
-    summary_df['days_24h'] = summary_df['yearly_hours']/24
-    summary_df['weeks'] = summary_df['yearly_hours']/24/7
-    summary_df['hours_per_week'] = summary_df['percent'] * 24*7
-
-    colors = ['#dfdfdf', '#9f9f9f ', '#606060', '#202020']
-    fig = go.Figure(data=[go.Pie(labels=['work','commute','sleep','free'],
-                                 values=[s_row['yearly_work_target'],
-                                 s_row['yearly_commuting_target'],
-                                 s_row['yearly_sleep_target'],
-                                 s_row['yearly_free_time']])]
-    )
-    fig.update_traces(hoverinfo='label+percent', textinfo='label+value+percent', textfont_size=20, marker=dict(colors=colors, line=dict(color='#000000', width=2)),)
-    fig.update_layout(margin=dict(l=30,r=30,b=30,t=30))
-    fig.update_layout(showlegend=False)
-
-    df = df[['date','day','total_time','work_target','sleep_target','commuting_target']]
-    context['df'] = tabulate(df.round(2), df.columns, tablefmt="psql")
-    context['summary_df'] = tabulate(summary_df.round(2), summary_df.columns, tablefmt="psql")
-    context['summary_fig'] = fig.to_html()
-
-
+    # input app for stress score now
     in_app = DjangoDash(name="input_app",external_stylesheets=[dbc.themes.BOOTSTRAP])
     in_app.layout = html.Div([
         html.H6("self reported stress score (1=no stress, 5=anxious for no reason, 10=feel like breaking down)"),
-        html.Div([
-            dcc.Input(id='my-input', value='0', type='number'),
-            html.Button('Submit', id='submit-val', n_clicks=0),
-        ]),
+        html.Div([dcc.Input(id='text_in', value='0', type='number'), html.Button('Submit', id='submit', n_clicks=0),]),
         html.Br(),
-        html.Pre(id='my-output'),
-
-    ])
-
-    @in_app.callback(
-        Output(component_id='my-output', component_property='children'),
-        Input(component_id='submit-val', component_property='n_clicks'), State(component_id='my-input', component_property='value'), prevent_initial_call=False
-    )
+        html.Pre(id='past'),
+    ], className=['m-5 text-center'])
+    @in_app.callback(Output('past', 'children'), Input('submit', 'n_clicks'), State('text_in','value'), prevent_initial_call=False)
     def update_output_div(n_clicks, input_value):
-        engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
-
+        engine = create_engine(os.environ['POSTGRES_URI'])
         if n_clicks:
-            ip_address_of_client = get_client_ip(request)
-            df = pd.DataFrame([
-                {
-                'timestamp':datetime.datetime.now(),
-                'ip_address': ip_address_of_client,
-                'stress_score': input_value,
-                }
-            ])
-            print(df)
+            df = pd.DataFrame([{ 'timestamp':datetime.datetime.now(), 'ip_address': get_client_ip(request), 'stress_score': input_value, }])
             df.to_sql(f"self_reported_stress_score", con=engine, index=False, if_exists='append')
-
         df = pd.read_sql(f"SELECT * FROM self_reported_stress_score ORDER BY timestamp DESC LIMIT 5", con=engine)
         return tabulate(df.round(2), df.columns, tablefmt="psql")
 
+    return render(request, 'private/abel.html', context=context)
 
-    return render(request, 'work.html', context=context)
 
 
 

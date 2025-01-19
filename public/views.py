@@ -6,7 +6,6 @@ import datetime
 import sqlalchemy
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import plotly.express as px
 from tabulate import tabulate
 import plotly.graph_objects as go
@@ -178,10 +177,11 @@ def abel(request):
 
     @app.callback(Output("abel", "children"), Input("x", "value"), Input("y", "value"))
     def update_bar_chart(x, y):
-        ddf = df[df['isMainSleep']==True]
-        fig = px.scatter(ddf, x=x, y=y, trendline='ols')
-        correclation = scipy.stats.linregress( ddf[x],ddf[y],)
-        return html.Div([ dcc.Graph(figure=fig), html.P(f"{correclation}"), ])
+        ddf = df[df['isMainSleep']==True].copy(deep=True)
+        return html.Div([
+            dcc.Graph(figure=px.scatter(ddf, x=x, y=y, trendline='ols')),
+            html.P(f"{scipy.stats.linregress( ddf[x],ddf[y],)}"),
+        ])
 
 
 
@@ -203,8 +203,6 @@ def abel(request):
         return tabulate(df.round(2), df.columns, tablefmt="psql")
 
     return render(request, 'private/abel.html', context=context)
-
-
 
 
 
@@ -289,7 +287,3 @@ def fetch_fitbit(request):
             print(f"no sleep")
 
     return redirect('/')
-
-
-
-#

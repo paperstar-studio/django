@@ -14,7 +14,7 @@ CSRF_TRUSTED_ORIGINS = ['https://paperstar.studio']
 # CSRF_TRUSTED_ORIGINS = ["*"]
 
 INSTALLED_APPS = [
-    "daphne", # ASGI Webserver
+    #"daphne", # ASGI Webserver
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

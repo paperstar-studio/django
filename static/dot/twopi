@@ -1,0 +1,7 @@
+// Hello world example
+digraph "hello-pythonistas" {
+	test -> a
+	test -> b
+	b -> a
+	b -> abel
+}

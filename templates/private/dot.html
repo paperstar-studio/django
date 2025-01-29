@@ -1,0 +1,16 @@
+{% extends '../base.html' %}
+{% load static %}
+{% block content %}
+{% load plotly_dash %}
+
+<div class="row h-auto text-center">
+    <h1 class="col">dot diagram styles</h1>
+</div>
+
+<div class="row h-auto text-center">
+  {% for tech in technologies %}
+    <div class="col-sm p-2"><img src="{% static tech %}" /></div>
+  {% endfor %}
+</div>
+
+{% endblock %}

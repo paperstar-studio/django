@@ -134,7 +134,7 @@ def abel(request):
             expand_tech.append(file)
     context['technologies'] = expand_tech
 
-    engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
+    engine = create_engine(os.environ['POSTGRES_URI'])
     df = pd.read_sql(
         f"""SELECT
         "awakeCount"
@@ -171,7 +171,7 @@ def abel(request):
     # correlations application
     app = DjangoDash(name="correlations",external_stylesheets=[dbc.themes.BOOTSTRAP])
     app.layout = html.Div([
-        dbc.Row([dcc.Dropdown(df.columns, 'duration_hours', id='x'), dcc.Dropdown(df.columns, 'efficiency', id='y'),]),
+        dbc.Row([dcc.Dropdown(df.select_dtypes(include='number').columns, 'duration_hours', id='x'), dcc.Dropdown(df.select_dtypes(include='number').columns, 'efficiency', id='y'),]),
         dbc.Row([], id='abel'),
     ], className=['m-5 text-center'])
 
@@ -187,9 +187,17 @@ def abel(request):
 
     # input app for stress score now
     in_app = DjangoDash(name="input_app",external_stylesheets=[dbc.themes.BOOTSTRAP])
+    #datapoints = pd.read_sql(f"", con=engine)
     in_app.layout = html.Div([
+        html.Div([
+            dcc.Checklist(['AM brush teeth', 'AM floss', 'AM wash face'], id='1'),
+            dcc.Checklist(['PM brush teeth', 'PM floss', 'PM wash face'], id='2'),
+        ], className=['text-left']),
         html.H6("self reported stress score (1=no stress, 5=anxious for no reason, 10=feel like breaking down)"),
-        html.Div([dcc.Input(id='text_in', value='0', type='number'), html.Button('Submit', id='submit', n_clicks=0),]),
+        html.Div([
+            dcc.Input(id='text_in', value='0', type='number'),
+            html.Button('Submit', id='submit', n_clicks=0),
+        ]),
         html.Br(),
         html.Pre(id='past'),
     ], className=['m-5 text-center'])
@@ -203,6 +211,31 @@ def abel(request):
         return tabulate(df.round(2), df.columns, tablefmt="psql")
 
     return render(request, 'private/abel.html', context=context)
+
+
+
+def dot(request):
+    context = {}
+
+    import graphviz
+
+    for engine in ['circo', 'dot', 'fdp', 'neato', 'osage', 'patchwork', 'sfdp', 'twopi']:
+
+        dot = graphviz.Digraph("hello-pythonistas", comment="Hello world example", engine=engine,)
+        dot.edge("test", "a")
+        dot.edge("test", "b")
+        dot.edge("b", "a")
+        dot.edge("b", "abel")
+
+        dot.render(filename=f"{engine}", format='png', directory='static/dot')
+
+    expand_tech = []
+    for file in os.listdir('static/dot'):
+        if '.png' in file:
+            expand_tech.append(f"dot/{file}")
+    context['technologies'] = expand_tech
+
+    return render(request, 'private/dot.html', context=context)
 
 
 

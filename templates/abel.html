@@ -1,4 +1,4 @@
-{% extends '../base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 {% block content %}
 {% load plotly_dash %}
@@ -14,32 +14,25 @@
 
 {% plotly_app name="correlations" ratio=1 %}
 
+<hr/>
+
 {% plotly_app name="input_app" ratio=1 %}
 
 <div class="row mx-auto">
-    <div class="col-sm-12">
-      {{ fig|safe }}
-  </div>
+    <div class="col-sm-12">{{ fig|safe }}</div>
 </div>
-
-
+<hr/>
 
 <div class="row mx-auto">
-    <div class="col-sm-12">
-      {{ df|safe }}
-  </div>
+    <div class="col-sm-12">{{ df|safe }}</div>
 </div>
-
-
-
-
-<div style="height:1500px;"></div>
-
+<hr/>
 
 <div class="row h-25 justify-content-center">
   {% for tech in technologies %}
     <div class="col-sm-1 p-2"><img src="{% static tech %}" /></div>
   {% endfor %}
 </div>
+<hr/>
 
 {% endblock %}

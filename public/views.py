@@ -12,9 +12,7 @@ import plotly.graph_objects as go
 from sqlalchemy import create_engine, text
 from dash import dcc, html, dash_table
 import dash_bootstrap_components as dbc
-from pymongo.server_api import ServerApi
 from django_plotly_dash import DjangoDash
-from pymongo.mongo_client import MongoClient
 from django.shortcuts import render, redirect
 from dash.dependencies import Input, Output, State
 from django.contrib.auth.decorators import login_required
@@ -34,7 +32,8 @@ def index(request):
     context = {}
     engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
     sleep = pd.read_sql(
-        f"""SELECT * FROM fitbit_sleeping where "dateOfSleep" >= '2024-12-25' AND "isMainSleep" = True """,
+        f"""SELECT * FROM fitbit_sleeping where
+        "dateOfSleep" >= '2024-12-25' AND "isMainSleep" = True """,
         con=engine,
         dtype={'dateOfSleep':'datetime64[ns]', 'startTime':'datetime64[ns]', 'endTime':'datetime64[ns]'},
     )
@@ -51,7 +50,7 @@ def index(request):
     em_sleep['type'] = 'sleep'
 
     pw_24_12 = pd.read_excel("Webdesk-Journal-Export--dec.xlsx")
-    pw_25_01 = pd.read_excel("Webdesk-Journal-Export--jan.xlsx")
+    pw_25_01 = pd.read_excel("Webdesk-Journal-Export--2025-01.xlsx")
     pw_work = pd.concat([pw_24_12, pw_25_01])
     pw_work['from'] = pd.to_datetime(pw_work['from'], format='%H:%M')
     pw_work['to'] = pd.to_datetime(pw_work['to'], format='%H:%M')
@@ -170,17 +169,26 @@ def abel(request):
 
     # correlations application
     app = DjangoDash(name="correlations",external_stylesheets=[dbc.themes.BOOTSTRAP])
-    app.layout = html.Div([
-        dbc.Row([dcc.Dropdown(df.select_dtypes(include='number').columns, 'duration_hours', id='x'), dcc.Dropdown(df.select_dtypes(include='number').columns, 'efficiency', id='y'),]),
-        dbc.Row([], id='abel'),
+    app.layout = dbc.Row([
+        dbc.Col([
+            dcc.Dropdown(df.select_dtypes(include='number').columns, 'duration_hours', id='x'),
+            dcc.Dropdown(df.select_dtypes(include='number').columns, 'efficiency', id='y'),], className='my-auto'),
+        dbc.Col([], id='abel'),
     ], className=['m-5 text-center'])
 
     @app.callback(Output("abel", "children"), Input("x", "value"), Input("y", "value"))
     def update_bar_chart(x, y):
         ddf = df[df['isMainSleep']==True].copy(deep=True)
+        r = scipy.stats.linregress(ddf[x],ddf[y])
+        TO_ROUND = 4
         return html.Div([
             dcc.Graph(figure=px.scatter(ddf, x=x, y=y, trendline='ols')),
-            html.P(f"{scipy.stats.linregress( ddf[x],ddf[y],)}"),
+            html.P(f"pvalue: {r.pvalue}"),
+            html.P(f"slope: {round(r.slope,TO_ROUND)}"),
+            html.P(f"intercept: {round(r.intercept,TO_ROUND)}"),
+            html.P(f"rvalue: {round(r.rvalue,TO_ROUND)}"),
+            html.P(f"stderr: {round(r.stderr,TO_ROUND)}"),
+            html.P(f"intercept_stderr: {round(r.intercept_stderr,TO_ROUND)}\n"),
         ])
 
 
@@ -210,10 +218,10 @@ def abel(request):
         df = pd.read_sql(f"SELECT * FROM self_reported_stress_score ORDER BY timestamp DESC LIMIT 5", con=engine)
         return tabulate(df.round(2), df.columns, tablefmt="psql")
 
-    return render(request, 'private/abel.html', context=context)
+    return render(request,'abel.html',context=context)
 
 
-
+@login_required
 def dot(request):
     import graphviz
     for engine in ['circo', 'dot', 'fdp', 'neato', 'osage', 'patchwork', 'sfdp', 'twopi']:

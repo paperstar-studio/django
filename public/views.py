@@ -215,27 +215,20 @@ def abel(request):
 
 
 def dot(request):
-    context = {}
-
     import graphviz
-
     for engine in ['circo', 'dot', 'fdp', 'neato', 'osage', 'patchwork', 'sfdp', 'twopi']:
-
         dot = graphviz.Digraph("hello-pythonistas", comment="Hello world example", engine=engine,)
         dot.edge("test", "a")
         dot.edge("test", "b")
         dot.edge("b", "a")
         dot.edge("b", "abel")
-
         dot.render(filename=f"{engine}", format='png', directory='static/dot')
-
     expand_tech = []
     for file in os.listdir('static/dot'):
         if '.png' in file:
             expand_tech.append(f"dot/{file}")
-    context['technologies'] = expand_tech
 
-    return render(request, 'private/dot.html', context=context)
+    return render(request, 'private/dot.html', context={'technologies':expand_tech})
 
 
 

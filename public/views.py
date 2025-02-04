@@ -9,6 +9,7 @@ import pandas as pd
 import plotly.express as px
 from tabulate import tabulate
 import plotly.graph_objects as go
+from django.http import HttpResponse
 from sqlalchemy import create_engine, text
 from dash import dcc, html, dash_table
 import dash_bootstrap_components as dbc
@@ -123,6 +124,24 @@ def index(request):
     context['fig'] = fig.to_html()
 
     return render(request, 'index.html', context=context)
+
+
+def myajaxformview(request):
+    #if request.method == 'POST':
+        #if request.is_ajax():
+    import json
+    print("**ajax form post**")
+    mydata = []
+    for k, v in request.POST.items():
+        print(f"'{k}': '{v}'")
+        mydata.append({k:v})
+
+    #print("field1 data: %s" % request.POST['field1'])
+    #print("field2 data: %s" % request.POST['field2'])
+
+    return HttpResponse(json.dumps(mydata), content_type="application/json")
+    return render(request,"abel.html")
+
 
 @login_required
 def abel(request):

@@ -141,13 +141,11 @@ def index(request):
 
 @timing
 def get_client():
-    conn = str(os.environ['POSTGRES_URI'])
-    conn = conn.replace('postgresql://','postgres://')
-    return conn
+    return str(os.environ['POSTGRES_URI']).replace('postgresql://','postgres://')
 
 @timing
 def get_df(conn):
-    df = cx.read_sql(conn, f"SELECT * FROM self_reported_stress_score")
+    df = cx.read_sql(conn, f"SELECT * FROM thoughts")
     df['timestamp'] = df['timestamp'].astype(str)
     return df
 
@@ -195,14 +193,11 @@ def abel(request):
         con=engine,
         dtype={'dateOfSleep':'datetime64[ns]', 'startTime':'datetime64[ns]', 'endTime':'datetime64[ns]'},
     )
-    print(df.info())
-
     df.drop_duplicates('startTime',inplace=True)
 
     context['df'] = df[[
         'dateOfSleep','duration_hours','startTime',
     ]].round(2).to_html()
-
 
     # correlations application
     app = DjangoDash(name="correlations",external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -231,13 +226,13 @@ def abel(request):
     ddf = pd.DataFrame(
         df.groupby('dateOfSleep').agg({'dateOfSleep':'size','duration_hours':['sum','mean','std']})
     )
-    print(ddf)
-    print(ddf.info())
-    print(list(ddf.index.strftime("%Y-%m-%d")))
+
     context['label_series'] = json.dumps(list(ddf.index.strftime('%-j').astype(str)))
     context['value_series'] = json.dumps(ddf['duration_hours']['sum'].to_list())
 
     return render(request,'abel.html',context=context)
+
+
 # tabulate(df.round(2), df.columns, tablefmt="psql")
 
 @login_required
@@ -255,7 +250,7 @@ def dot(request):
         if '.png' in file:
             expand_tech.append(f"dot/{file}")
 
-    return render(request, 'private/dot.html', context={'technologies':expand_tech})
+    return render(request, 'dot.html', context={'technologies':expand_tech})
 
 
 

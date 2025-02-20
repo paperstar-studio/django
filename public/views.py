@@ -6,6 +6,7 @@ import datetime
 import sqlalchemy
 import numpy as np
 import pandas as pd
+import connectorx as cx
 import plotly.express as px
 from tabulate import tabulate
 import plotly.graph_objects as go
@@ -18,6 +19,19 @@ from django.shortcuts import render, redirect
 from dash.dependencies import Input, Output, State
 from django.contrib.auth.decorators import login_required
 
+from functools import wraps
+from time import time
+
+def timing(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print(f"\n\nfunc:%r args:[%r, %r] took: %2.4f sec" % \
+          (f.__name__, args, kw, te-ts))
+        return result
+    return wrap
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -125,24 +139,26 @@ def index(request):
 
     return render(request, 'index.html', context=context)
 
+@timing
+def get_client():
+    conn = str(os.environ['POSTGRES_URI'])
+    conn = conn.replace('postgresql://','postgres://')
+    return conn
 
+@timing
+def get_df(conn):
+    df = cx.read_sql(conn, f"SELECT * FROM self_reported_stress_score")
+    df['timestamp'] = df['timestamp'].astype(str)
+    return df
+
+@timing
 def myajaxformview(request):
-    #if request.method == 'POST':
-        #if request.is_ajax():
-    import json
-    print("**ajax form post**")
-    mydata = []
-    for k, v in request.POST.items():
-        print(f"'{k}': '{v}'")
-        mydata.append({k:v})
+    engine = get_client()
+    df = get_df(engine)
+    data = df.to_dict(orient='records')
+    return HttpResponse(json.dumps({'data': data}), content_type="application/json")
 
-    #print("field1 data: %s" % request.POST['field1'])
-    #print("field2 data: %s" % request.POST['field2'])
-
-    return HttpResponse(json.dumps(mydata), content_type="application/json")
-    return render(request,"abel.html")
-
-
+@timing
 @login_required
 def abel(request):
     context = {}
@@ -181,6 +197,8 @@ def abel(request):
     )
     print(df.info())
 
+    df.drop_duplicates('startTime',inplace=True)
+
     context['df'] = df[[
         'dateOfSleep','duration_hours','startTime',
     ]].round(2).to_html()
@@ -210,35 +228,17 @@ def abel(request):
             html.P(f"intercept_stderr: {round(r.intercept_stderr,TO_ROUND)}\n"),
         ])
 
-
-
-    # input app for stress score now
-    in_app = DjangoDash(name="input_app",external_stylesheets=[dbc.themes.BOOTSTRAP])
-    #datapoints = pd.read_sql(f"", con=engine)
-    in_app.layout = html.Div([
-        html.Div([
-            dcc.Checklist(['AM brush teeth', 'AM floss', 'AM wash face'], id='1'),
-            dcc.Checklist(['PM brush teeth', 'PM floss', 'PM wash face'], id='2'),
-        ], className=['text-left']),
-        html.H6("self reported stress score (1=no stress, 5=anxious for no reason, 10=feel like breaking down)"),
-        html.Div([
-            dcc.Input(id='text_in', value='0', type='number'),
-            html.Button('Submit', id='submit', n_clicks=0),
-        ]),
-        html.Br(),
-        html.Pre(id='past'),
-    ], className=['m-5 text-center'])
-    @in_app.callback(Output('past', 'children'), Input('submit', 'n_clicks'), State('text_in','value'), prevent_initial_call=False)
-    def update_output_div(n_clicks, input_value):
-        engine = create_engine(os.environ['POSTGRES_URI'])
-        if n_clicks:
-            df = pd.DataFrame([{ 'timestamp':datetime.datetime.now(), 'ip_address': get_client_ip(request), 'stress_score': input_value, }])
-            df.to_sql(f"self_reported_stress_score", con=engine, index=False, if_exists='append')
-        df = pd.read_sql(f"SELECT * FROM self_reported_stress_score ORDER BY timestamp DESC LIMIT 5", con=engine)
-        return tabulate(df.round(2), df.columns, tablefmt="psql")
+    ddf = pd.DataFrame(
+        df.groupby('dateOfSleep').agg({'dateOfSleep':'size','duration_hours':['sum','mean','std']})
+    )
+    print(ddf)
+    print(ddf.info())
+    print(list(ddf.index.strftime("%Y-%m-%d")))
+    context['label_series'] = json.dumps(list(ddf.index.strftime('%-j').astype(str)))
+    context['value_series'] = json.dumps(ddf['duration_hours']['sum'].to_list())
 
     return render(request,'abel.html',context=context)
-
+# tabulate(df.round(2), df.columns, tablefmt="psql")
 
 @login_required
 def dot(request):

@@ -1,123 +1,69 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-{% load plotly_dash %}
 
+<div class="ct-chart"></div>
 
-<div class="row h-auto text-center">
-    <h1 class="col">abel</h1>
-</div>
+<script>
 
-<div class="row h-auto text-center">
-    <h5 class="col">linear correlation</h5>
-</div>
+  var label_series = {{label_series|safe}};
+  var value_series = {{value_series}};
 
-{% plotly_app name="correlations" ratio=1 %}
+  new Chartist.Line('.ct-chart', {
+    labels: label_series,
+    series: [value_series,]
+  }, { fullWidth: true, xaxis: {horizontal: true} } );
 
-<hr/>
-
-{% plotly_app name="input_app" ratio=1 %}
-
-<div class="row mx-auto">
-    <div class="col-sm-12">{{ fig|safe }}</div>
-</div>
-<hr/>
-
-<div class="row mx-auto">
-    <div class="col-sm-12">{{ df|safe }}</div>
-</div>
-<hr/>
-
-<div class="row h-25 justify-content-center">
-  {% for tech in technologies %}
-    <div class="col-sm-1 p-2"><img src="{% static tech %}" /></div>
-  {% endfor %}
-</div>
-<hr/>
+</script>
 
 
 
-
+<div class="row h-auto text-center"><h1 class="col">abel</h1></div>
 
 
 <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
 <script type="text/javascript">
 $(function() {
   var count = 0;
-  $('#mybutton').click(function() {
-      $.get('/mygetview', {'mydata': 'xyz'}, function(data) {
-        $('#output').html(data); // append to inner html
-        //alert(data);
-    });
-  });
-  $('#mybutton2').click(function() {
-      // You gotta include the csrf_token in your post data
-      $.post('/mypostview', {'mydata': 'xyz', 'csrfmiddlewaretoken': '{{ csrf_token }}'}, function(data) {
-        $('#output').html(data); // append to inner html
-        //alert(data);
-    });
-  });
-
-  $('#mybutton3').click(function(event) {
-      // You gotta include the csrf_token in your post data
-    event.preventDefault();
-    $.ajax({
-        type: 'POST',
-        url: '/myajaxview',
-        data: {'mydata': 'xyz', 'csrfmiddlewaretoken': '{{ csrf_token }}'},
-        success: function (data, textStatus) {
-            //alert(data, textStatus);
-            $('#output').html(data); // append to inner html
-        },
-        error: function(xhr, status, e) {
-            alert(status, e);
-        }
-    });
-  });
-
   $('#myform').submit(function(event) {
-    // You gotta include the csrf_token in your post data
     event.preventDefault();
     $.ajax({
-        type: 'POST',
-        url: '/myajaxformview',
+        type: 'POST', url: '/myajaxformview',
         dataType: 'json',
-        data: $('#myform').serialize(), // serialize all your
+        data: $('#myform').serialize(),
         success: function (data, textStatus) {
-            //alert(JSON.stringify(data), textStatus);
             count += 1;
             $('#output2').html("");
-            $('#output2').html(count + " - You sent a ajax form post. Here's the data from server" + JSON.stringify(data)); // append to inner html
+            $('#output2').append(count + " - You sent a ajax form post. Here's the data from server" + JSON.stringify(data)); // append to inner html
+            $('#output2').append("<div id="+count+">hello</div>");
         },
         error: function(xhr, status, e) {
             alert(status, e);
         }
     });
   });
-
 });
 </script>
-  <button id="mybutton"> Click me - GET </button>
-  <button id="mybutton2"> Click me - POST </button>
-  <button id="mybutton3"> Click me - AJAX </button>
-  <div id="output"></div>
 
 <br />
-<br />
 
-  <form id="myform" method="post" action="/rango/login/">
-    {% csrf_token %}
-    Field1: <input type="text" name="field1" value="" size="50" />
-    <br />
-    Field2: <input type="text" name="field2" value="" size="50" />
-    <br />
+<form id="myform" method="post" action="/rango/login/">{% csrf_token %}
+  <input type="text" name="field1" value="" size="50" />
+  <input type="submit" value="AJAX submit" /></input>
+</form>
 
-    <input type="submit" value="Click me- AJAX form" /></input>
-  </form>
-  <div id="output2"></div>
+<div id="output2"></div>
+
+<hr />
 
 
-
+<div class="row h-25 justify-content-center">
+  {% for tech in technologies %}
+    <div class="col-sm-1 p-2">
+      <img src="{% static tech %}" />
+    </div>
+  {% endfor %}
+</div>
 
 
 

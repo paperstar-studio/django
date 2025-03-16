@@ -1,4 +1,4 @@
-from . import views, consumers
+from . import views
 from django.urls import path
 
 
@@ -14,13 +14,5 @@ urlpatterns = [
     path("abel/", views.abel, name="abel"),
     path(r'myajaxformview', views.myajaxformview, name='myajaxformview'),
     path("dot/", views.dot, name="dot"),
-    #path("home/", views.home, name="home"),
-    #path("week_52/", views.week_52, name="week_52"),
-
-    #path("ws/presence", consumers.PresenceConsumer.as_asgi()),
-
-
-
-
 
 ]

@@ -1,0 +1,18 @@
+{% extends '../base.html' %}
+{% load static %}
+{% block content %}
+
+
+<div class="row h-auto text-center">
+  <h1 class="col">mar 2025</h1>
+</div>
+
+<div class="row h-auto text-center">
+  <p class="col">to preserve these 'musings' i leave them in table (pd.DataFrame) format for easy storage displayed also below<p>
+</div>
+
+<div class="row h-auto">
+  <div class="col-12">{{ table_data|safe }}<div>
+</div>
+
+{% endblock %}

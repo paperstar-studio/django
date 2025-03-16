@@ -42,7 +42,7 @@ def get_client_ip(request):
     return ip
 # 🌟 star, 🚀
 
-
+@login_required
 def index(request):
     context = {}
     engine = create_engine(os.environ['POSTGRES_URI'], client_encoding='utf8')
